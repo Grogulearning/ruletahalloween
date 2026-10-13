@@ -1,0 +1,689 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Ruleta de Colores Halloween</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Creepster&family=Nunito:wght@400;700;800;900&display=swap">
+<style>
+/* Layout: la ruleta a la izquierda (fija al hacer scroll) y a la derecha instrucciones, tu color, tablero y panel de administradora. En celular todo en una columna. */
+:root {
+  --night: #140d1f;
+  --card: #231736;
+  --line: #3d2b5c;
+  --bone: #f4ead8;
+  --muted: #bcaed6;
+  --pumpkin: #ff7a1a;
+  --pumpkin-ink: #1c0e00;
+  --danger: #ff7b8a;
+  --f-display: 'Creepster', 'Chiller', 'Impact', fantasy;
+  --f-body: 'Nunito', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  padding-inline: 16px;
+  padding-block: 20px 48px;
+  background-color: var(--night);
+  background-image:
+    radial-gradient(circle at 88% 6%, rgba(255, 176, 90, .22), transparent 24%),
+    radial-gradient(circle at 10% 100%, rgba(122, 63, 240, .18), transparent 40%);
+  background-repeat: no-repeat;
+  color: var(--bone);
+  font-family: var(--f-body);
+  font-size: 16px;
+  line-height: 1.5;
+}
+.page { max-width: 1120px; margin-inline: auto; display: grid; gap: 20px; }
+header { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; }
+.eyebrow { margin: 0; font-size: 13px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; color: var(--pumpkin); }
+h1 { margin: 2px 0 0; font-family: var(--f-display); font-weight: 400; font-size: clamp(40px, 8vw, 68px); line-height: 1; letter-spacing: .02em; text-wrap: balance; text-shadow: 0 0 22px rgba(255, 122, 26, .45); }
+.counter { text-align: right; }
+.counter b { display: block; font-family: var(--f-display); font-weight: 400; font-size: clamp(40px, 8vw, 64px); line-height: 1; font-variant-numeric: tabular-nums; }
+.counter span { font-size: 13px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+
+.grid { display: grid; gap: 20px; grid-template-columns: minmax(0, 1fr); grid-template-areas: "how" "wheel" "result" "board" "admin"; }
+@media (min-width: 900px) {
+  .grid { grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); grid-template-rows: auto auto auto 1fr; grid-template-areas: "wheel how" "wheel result" "wheel board" "wheel admin"; align-items: start; }
+  .wheelcol { position: sticky; top: 16px; }
+}
+.how { grid-area: how; } .wheelcol { grid-area: wheel; min-width: 0; } .result { grid-area: result; } .board { grid-area: board; } .admin { grid-area: admin; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px; min-width: 0; }
+h2 { margin: 0 0 10px; font-size: 20px; font-weight: 900; line-height: 1.2; }
+h3 { margin: 0 0 2px; font-size: 13px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+p { margin: 0; }
+.muted { color: var(--muted); }
+.small { font-size: 14px; }
+
+ol.steps { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; counter-reset: s; }
+ol.steps li { counter-increment: s; display: grid; grid-template-columns: 32px 1fr; gap: 12px; align-items: start; }
+ol.steps li::before { content: counter(s); display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--pumpkin); color: var(--pumpkin-ink); font-family: var(--f-display); font-size: 20px; line-height: 1; }
+ol.steps strong { color: var(--pumpkin); }
+
+/* Ruleta */
+.wheel { position: relative; width: min(100%, 540px); aspect-ratio: 1; margin-inline: auto; }
+.wheel svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+#rotor { will-change: transform; transform-origin: 50% 50%; }
+.seglabel { font-family: var(--f-body); font-weight: 900; font-size: 30px; letter-spacing: .5px; }
+.bulb.a { fill: var(--pumpkin); } .bulb.b { fill: var(--bone); }
+.wheel.spinning .bulb.a { animation: blink .5s steps(1) infinite; }
+.wheel.spinning .bulb.b { animation: blink .5s steps(1) infinite .25s; }
+@keyframes blink { 0% { opacity: 1 } 50% { opacity: .2 } }
+.hubbtn { position: absolute; left: 50%; top: 50%; width: 22%; aspect-ratio: 1; transform: translate(-50%, -50%); border: 0; border-radius: 50%; background: transparent; cursor: pointer; padding: 0; }
+.hubbtn:disabled { cursor: default; }
+
+.controls { display: grid; gap: 12px; margin-top: 18px; max-width: 540px; margin-inline: auto; }
+label { font-size: 13px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+input[type="text"] { width: 100%; font: inherit; font-size: 18px; font-weight: 700; padding: 12px 14px; border-radius: 10px; border: 2px solid var(--line); background: var(--night); color: var(--bone); }
+input[type="text"]::placeholder { color: #8d7fae; }
+input[type="text"]:disabled { opacity: .7; }
+.btn { font: inherit; font-weight: 900; font-size: 18px; letter-spacing: .04em; padding: 14px 20px; border-radius: 12px; border: 2px solid var(--pumpkin); background: var(--pumpkin); color: var(--pumpkin-ink); cursor: pointer; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.btn.small { font-size: 14px; padding: 8px 12px; border-radius: 9px; }
+.btn.ghost { background: transparent; color: var(--bone); border-color: var(--line); }
+.btn.danger { background: transparent; color: var(--danger); border-color: var(--danger); }
+.btn.danger.armed { background: var(--danger); color: #2a0610; }
+:focus-visible { outline: 3px solid var(--bone); outline-offset: 3px; }
+#msg { min-height: 1.5em; font-size: 15px; font-weight: 700; color: var(--muted); }
+#msg.err { color: var(--danger); }
+
+#sound { justify-self: start; }
+
+.foot { text-align: center; }
+[hidden] { display: none !important; }
+
+/* Resultado */
+.swatch { flex: none; width: 18px; height: 18px; border-radius: 50%; background: var(--c); border: 2px solid rgba(244, 234, 216, .55); }
+.swatch.big { width: 44px; height: 44px; }
+.resrow { display: flex; align-items: center; gap: 14px; margin-block: 6px 10px; }
+.colorname { margin: 0; font-family: var(--f-display); font-weight: 400; font-size: clamp(44px, 9vw, 64px); line-height: 1; letter-spacing: .03em; }
+.task { font-size: 19px; font-weight: 700; }
+.task strong { color: var(--pumpkin); }
+.ideas { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); margin-top: 14px; }
+.ideas p { font-size: 15px; }
+
+/* Tablero */
+.boardhead { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+ul.rows { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 8px; }
+.brow { display: grid; grid-template-columns: 18px 84px minmax(0, 1fr); gap: 10px; align-items: start; padding-block: 6px; border-top: 1px solid var(--line); }
+.brow:first-child { border-top: 0; }
+.bname { font-weight: 800; }
+.pills { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
+.pill { padding: 2px 10px; border-radius: 999px; background: var(--night); border: 1px solid var(--line); font-weight: 700; font-size: 15px; overflow-wrap: anywhere; }
+
+/* Admin */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-block: 8px 12px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px 3px 6px; border-radius: 999px; background: var(--night); border: 1px solid var(--line); font-weight: 800; font-size: 14px; }
+.chip .swatch { width: 14px; height: 14px; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.tablewrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 15px; }
+th { text-align: left; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); padding: 6px 8px; border-bottom: 1px solid var(--line); }
+td { padding: 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+td.when { color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+td .cell { display: inline-flex; align-items: center; gap: 8px; font-weight: 800; }
+textarea.copybox { width: 100%; min-height: 140px; margin-top: 10px; font: inherit; font-size: 14px; padding: 10px; border-radius: 10px; border: 2px solid var(--line); background: var(--night); color: var(--bone); }
+
+@media (prefers-reduced-motion: reduce) {
+  .wheel.spinning .bulb { animation: none !important; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <div>
+      <p class="eyebrow">Halloween</p>
+      <h1>Ruleta de colores</h1>
+    </div>
+    <div class="counter"><b id="count">0</b><span>Giros</span></div>
+  </header>
+
+  <div class="grid">
+    <section class="card how" aria-labelledby="how-h">
+      <h2 id="how-h">Cómo se juega</h2>
+      <ol class="steps">
+        <li><span>Escribe tu nombre.</span></li>
+        <li><span>Gira la ruleta. Cada persona tiene <strong>un solo giro</strong>.</span></li>
+        <li><span>Lleva <strong>4 botanas y 4 bebidas</strong> del color que te toque.</span></li>
+      </ol>
+    </section>
+
+    <div class="wheelcol">
+      <div class="wheel" id="wheel">
+        <svg id="rotor" viewBox="-270 -270 540 540" aria-hidden="true"></svg>
+        <svg id="frame" viewBox="-270 -270 540 540" aria-hidden="true"></svg>
+        <button class="hubbtn" id="hub" type="button" aria-label="Girar la ruleta"></button>
+      </div>
+      <div class="controls">
+        <label for="name">Tu nombre</label>
+        <input id="name" type="text" maxlength="40" autocomplete="off" placeholder="Por ejemplo: Ana">
+        <button class="btn" id="spin" type="button" disabled>Conectando…</button>
+        <button class="btn small ghost" id="sound" type="button" aria-pressed="true">Sonido: activado</button>
+        <p id="msg" role="status" aria-live="polite"></p>
+      </div>
+    </div>
+
+    <section class="card result" id="result" aria-live="polite"></section>
+
+    <section class="card board" aria-labelledby="board-h">
+      <div class="boardhead"><h2 id="board-h">Quién lleva qué</h2><span class="muted small" id="board-count"></span></div>
+      <ul class="rows" id="board"></ul>
+    </section>
+
+    <section class="card admin" id="admin" hidden></section>
+  </div>
+  <div class="foot"><button class="btn small ghost" id="adminlogin" type="button" hidden>Administradora</button></div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+/* === CONFIGURA AQUÍ: pega los datos de tu proyecto de Firebase (ver GUIA.md) === */
+window.RULETA_CONFIG = {
+  apiKey: "AIzaSyA9daELPwf2MjZKmEL2MMUzXDIdoeiQKfY",
+  authDomain: "ruleta-halloween.firebaseapp.com",
+  projectId: "ruleta-halloween",
+  appId: "1:479884724483:web:a17efb5be822e049868136",
+  adminEmail: "itech.gdl@gmail.com"   /* opcional: tu correo de Google para el panel de administradora */
+};
+</script>
+<script>
+(function () {
+  'use strict';
+  var CFG = window.RULETA_CONFIG || {};
+
+  var COLORS = [
+    { key: 'morado',   name: 'Morado',   hex: '#7a3ff0', ink: '#ffffff', snacks: ['uvas moradas', 'chips de camote morado'], drinks: ['jugo de uva', 'refresco de uva'] },
+    { key: 'verde',    name: 'Verde',    hex: '#7fdc4a', ink: '#14210a', snacks: ['pepino con limón y chile', 'aceitunas verdes'], drinks: ['refresco de lima-limón', 'agua de pepino'] },
+    { key: 'azul',     name: 'Azul',     hex: '#2f7cf0', ink: '#ffffff', snacks: ['gomitas azules', 'arándanos'], drinks: ['bebida deportiva azul', 'refresco azul'] },
+    { key: 'rojo',     name: 'Rojo',     hex: '#d3213b', ink: '#ffffff', snacks: ['fresas con chile', 'sandía con tajín'], drinks: ['agua de jamaica', 'refresco de fresa'] },
+    { key: 'naranja',  name: 'Naranja',  hex: '#ff6a00', ink: '#1f0d00', snacks: ['Cheetos', 'zanahoria con limón y chile'], drinks: ['jugo de naranja', 'refresco de naranja'] },
+    { key: 'amarillo', name: 'Amarillo', hex: '#ffc61a', ink: '#241a00', snacks: ['palomitas con mantequilla', 'piña con chile'], drinks: ['jugo de piña', 'limonada'] },
+    { key: 'blanco',   name: 'Blanco',   hex: '#f6f0e4', ink: '#241c33', snacks: ['palomitas naturales', 'malvaviscos'], drinks: ['horchata', 'agua de coco'] },
+    { key: 'negro',    name: 'Negro',    hex: '#0d0914', ink: '#f6f0e4', snacks: ['galletas Oreo', 'aceitunas negras'], drinks: ['refresco de cola', 'café frío'] }
+  ];
+  var N = COLORS.length, SEG = 360 / N;
+  var byKey = {};
+  COLORS.forEach(function (c) { byKey[c.key] = c; });
+
+  var state = {
+    phase: 'loading',   // loading | ok | nodb | noid
+    db: null, uid: null, isOwner: false, canWrite: null,
+    docs: [], spinning: false, revealed: false, synced: false,
+    rotation: 0, confirm: null, copyText: '', busy: false
+  };
+
+  function $(id) { return document.getElementById(id); }
+  function h(tag, attrs) {
+    var e = document.createElement(tag);
+    var a = attrs || {};
+    Object.keys(a).forEach(function (k) {
+      var v = a[k];
+      if (v === false || v == null) return;
+      if (k === 'class') e.className = v;
+      else if (k === 'style') e.style.cssText = v;
+      else if (k.indexOf('on') === 0) e.addEventListener(k.slice(2), v);
+      else e.setAttribute(k, v === true ? '' : v);
+    });
+    for (var i = 2; i < arguments.length; i++) {
+      var kids = [].concat(arguments[i]);
+      kids.forEach(function (c) {
+        if (c == null || c === false) return;
+        e.append(c.nodeType ? c : document.createTextNode(String(c)));
+      });
+    }
+    return e;
+  }
+  function slug(n) {
+    var t = String(n || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
+    return t || ('n' + Date.now().toString(36));
+  }
+  function clean(s) { return String(s == null ? '' : s).slice(0, 40); }
+  function flash(text, isErr) { var m = $('msg'); m.textContent = text || ''; m.className = isErr ? 'err' : ''; }
+  function mine() { return state.docs.filter(function (d) { return d.uid === state.uid; })[0] || null; }
+  function validDocs() { return state.docs.filter(function (d) { return byKey[d.color]; }); }
+
+  /* ---------- Dibujo de la ruleta ---------- */
+  function pt(r, deg) {
+    var t = deg * Math.PI / 180;
+    return [(r * Math.sin(t)).toFixed(2), (-r * Math.cos(t)).toFixed(2)];
+  }
+  function buildWheel() {
+    var seg = '', lab = '';
+    COLORS.forEach(function (c, i) {
+      var a0 = i * SEG, a1 = (i + 1) * SEG, mid = a0 + SEG / 2;
+      var p0 = pt(232, a0), p1 = pt(232, a1);
+      seg += '<path d="M0,0 L' + p0[0] + ',' + p0[1] + ' A232,232 0 0 1 ' + p1[0] + ',' + p1[1] + ' Z" fill="' + c.hex + '" stroke="rgba(244,234,216,.4)" stroke-width="2"/>';
+      var flip = mid > 180;
+      lab += '<text transform="rotate(' + (flip ? mid + 90 : mid - 90) + ')" x="' + (flip ? -212 : 212) + '" y="0" text-anchor="' + (flip ? 'start' : 'end') + '" dominant-baseline="central" fill="' + c.ink + '" class="seglabel">' + c.name + '</text>';
+    });
+    $('rotor').innerHTML = '<g>' + seg + lab + '</g>';
+
+    var bulbs = '';
+    for (var i = 0; i < 24; i++) {
+      var p = pt(242, i * 15);
+      bulbs += '<circle class="bulb ' + (i % 2 ? 'b' : 'a') + '" cx="' + p[0] + '" cy="' + p[1] + '" r="5.5"/>';
+    }
+    var hub =
+      '<circle r="58" fill="#140d1f" stroke="#f4ead8" stroke-width="4"/>' +
+      '<ellipse cx="-17" cy="6" rx="22" ry="30" fill="#e0590a"/><ellipse cx="17" cy="6" rx="22" ry="30" fill="#e0590a"/>' +
+      '<ellipse cx="0" cy="6" rx="22" ry="32" fill="#ff7a1a"/>' +
+      '<path d="M-3,-26 Q0,-40 12,-44 L15,-37 Q7,-35 7,-26Z" fill="#6bbf3a"/>' +
+      '<path d="M-19,-1 L-11,-13 L-3,-1Z M3,-1 L11,-13 L19,-1Z" fill="#1c0e00"/>' +
+      '<path d="M-18,12 L-12,20 L-6,12 L0,20 L6,12 L12,20 L18,12 L18,22 Q0,34 -18,22Z" fill="#1c0e00"/>';
+    $('frame').innerHTML =
+      '<circle r="242" fill="none" stroke="#2a1844" stroke-width="22"/>' +
+      '<circle r="253" fill="none" stroke="#ff7a1a" stroke-width="2"/>' +
+      '<circle r="231" fill="none" stroke="#ff7a1a" stroke-width="2"/>' +
+      bulbs +
+      '<polygon points="0,-204 -24,-262 24,-262" fill="#ff7a1a" stroke="#140d1f" stroke-width="4" stroke-linejoin="round"/>' +
+      '<circle cx="0" cy="-246" r="6" fill="#140d1f"/>' +
+      hub;
+  }
+  function setRotation(deg, animate) {
+    var r = $('rotor');
+    var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    r.style.transition = animate ? 'transform ' + (reduce ? 1 : 6.2) + 's cubic-bezier(.12,.62,.08,1)' : 'none';
+    r.style.transform = 'rotate(' + deg + 'deg)';
+    state.rotation = deg;
+  }
+  function centerOf(index) { return index * SEG + SEG / 2; }
+  function syncWheel() {
+    var m = mine();
+    if (state.synced || !m || !byKey[m.color]) return;
+    state.synced = true;
+    setRotation(360 - centerOf(COLORS.indexOf(byKey[m.color])), false);
+  }
+
+  /* ---------- Sonido de Halloween (Web Audio, sin archivos) ---------- */
+  var audio = { ctx: null, master: null, muted: false, drone: null, raf: 0 };
+  try { audio.muted = localStorage.getItem('ruleta-mute') === '1'; } catch (e) {}
+
+  function audioInit() {
+    try {
+      if (!audio.ctx) {
+        var AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return;
+        audio.ctx = new AC();
+        audio.master = audio.ctx.createGain();
+        audio.master.gain.value = 0.55;
+        audio.master.connect(audio.ctx.destination);
+      }
+      if (audio.ctx.state === 'suspended') audio.ctx.resume();
+    } catch (e) {}
+  }
+  function canPlay() { return !!audio.ctx && !audio.muted; }
+
+  function blip(freq, t, dur, type, vol, dest) {
+    var o = audio.ctx.createOscillator(), g = audio.ctx.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(freq, t);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(dest || audio.master);
+    o.start(t); o.stop(t + dur + 0.05);
+  }
+  /* Tic de hueso cada vez que el puntero cruza un color */
+  function tickSound() {
+    if (!canPlay()) return;
+    var t = audio.ctx.currentTime;
+    blip(1250 + Math.random() * 140, t, 0.05, 'square', 0.1);
+    blip(190, t, 0.1, 'sine', 0.35);
+  }
+  /* Zumbido grave + theremin que sube mientras gira */
+  function startDrone() {
+    if (!canPlay() || audio.drone) return;
+    var c = audio.ctx, t = c.currentTime, nodes = [];
+    var out = c.createGain();
+    out.gain.setValueAtTime(0.0001, t);
+    out.gain.exponentialRampToValueAtTime(0.5, t + 1.2);
+    out.connect(audio.master);
+    var lp = c.createBiquadFilter();
+    lp.type = 'lowpass'; lp.frequency.value = 380; lp.Q.value = 6;
+    lp.connect(out);
+    var lfo = c.createOscillator(), lfoG = c.createGain();
+    lfo.frequency.value = 0.7; lfoG.gain.value = 220;
+    lfo.connect(lfoG); lfoG.connect(lp.frequency);
+    nodes.push(lfo);
+    [55, 55.7, 82.4].forEach(function (f) {
+      var o = c.createOscillator(), g = c.createGain();
+      o.type = 'sawtooth'; o.frequency.value = f; g.gain.value = 0.22;
+      o.connect(g); g.connect(lp);
+      nodes.push(o);
+    });
+    var th = c.createOscillator(), thG = c.createGain(), vib = c.createOscillator(), vibG = c.createGain();
+    th.type = 'sine';
+    th.frequency.setValueAtTime(311, t);
+    th.frequency.exponentialRampToValueAtTime(622, t + 5.6);
+    vib.frequency.value = 5.5; vibG.gain.value = 9;
+    vib.connect(vibG); vibG.connect(th.frequency);
+    thG.gain.setValueAtTime(0.0001, t);
+    thG.gain.exponentialRampToValueAtTime(0.09, t + 1.6);
+    th.connect(thG); thG.connect(out);
+    nodes.push(th, vib);
+    nodes.forEach(function (n) { n.start(t); });
+    audio.drone = { out: out, nodes: nodes };
+  }
+  function stopDrone() {
+    var d = audio.drone;
+    if (!d) return;
+    audio.drone = null;
+    try {
+      var t = audio.ctx.currentTime;
+      d.out.gain.cancelScheduledValues(t);
+      d.out.gain.setValueAtTime(Math.max(d.out.gain.value, 0.0001), t);
+      d.out.gain.exponentialRampToValueAtTime(0.0001, t + 0.35);
+      d.nodes.forEach(function (n) { try { n.stop(t + 0.4); } catch (e) {} });
+    } catch (e) {}
+  }
+  function bell(freq, t, vol) {
+    [1, 2.76, 5.4, 8.93].forEach(function (m, i) { blip(freq * m, t, 2.6 / (i + 1) + 0.4, 'sine', vol / (i + 1.3)); });
+  }
+  /* Campanada, lamento descendente y chillidos de murciélago al terminar */
+  function stingerSound() {
+    if (!canPlay()) return;
+    var c = audio.ctx, t = c.currentTime + 0.05;
+    bell(146.83, t, 0.5);
+    bell(174.61, t + 0.02, 0.28);
+    bell(110, t + 0.95, 0.4);
+    var o = c.createOscillator(), g = c.createGain(), lp = c.createBiquadFilter();
+    o.type = 'sawtooth';
+    o.frequency.setValueAtTime(330, t + 0.1);
+    o.frequency.exponentialRampToValueAtTime(150, t + 1.4);
+    lp.type = 'lowpass'; lp.frequency.value = 900;
+    g.gain.setValueAtTime(0.0001, t + 0.1);
+    g.gain.exponentialRampToValueAtTime(0.1, t + 0.35);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 1.5);
+    o.connect(lp); lp.connect(g); g.connect(audio.master);
+    o.start(t + 0.1); o.stop(t + 1.6);
+    [0.25, 0.4, 0.55].forEach(function (d) { blip(2600, t + d, 0.07, 'sine', 0.05); });
+  }
+  function currentAngle() {
+    var m = getComputedStyle($('rotor')).transform;
+    var v = m && m.match(/matrix\(([^)]+)\)/);
+    if (!v) return 0;
+    var p = v[1].split(',').map(parseFloat);
+    return Math.atan2(p[1], p[0]) * 180 / Math.PI;
+  }
+  function segAt(angle) { return Math.floor((((-angle) % 360 + 360) % 360) / SEG) % N; }
+  function spinSound(on) {
+    cancelAnimationFrame(audio.raf); audio.raf = 0;
+    if (!on) { stopDrone(); return; }
+    startDrone();
+    var last = segAt(currentAngle());
+    var loop = function () {
+      var sgm = segAt(currentAngle());
+      if (sgm !== last) { last = sgm; tickSound(); }
+      audio.raf = requestAnimationFrame(loop);
+    };
+    audio.raf = requestAnimationFrame(loop);
+  }
+  function renderSound() {
+    var b = $('sound');
+    b.textContent = audio.muted ? 'Sonido: apagado' : 'Sonido: activado';
+    b.setAttribute('aria-pressed', audio.muted ? 'false' : 'true');
+  }
+
+  /* ---------- Girar ---------- */
+  function randomInt(n) {
+    var a = new Uint32Array(1);
+    crypto.getRandomValues(a);
+    return a[0] % n;
+  }
+  async function spin() {
+    if (state.spinning || state.phase !== 'ok' || mine() || state.canWrite === false) return;
+    var name = clean($('name').value).trim();
+    if (!name) { flash('Escribe tu nombre antes de girar.', true); $('name').focus(); return; }
+    flash('');
+    audioInit();
+    var ref = state.db.collection('spins').doc(slug(name));
+    try { localStorage.setItem('ruleta-nombre', name); } catch (e) {}
+    state.spinning = true; state.revealed = false;
+    render();
+    try {
+      var snap = await ref.get();
+      if (snap.exists) {
+        var prev = snap.data() || {};
+        var pc = byKey[prev.color] ? ' (' + byKey[prev.color].name + ')' : '';
+        state.spinning = false; state.synced = false;
+        flash('Ya hay un giro con ese nombre' + pc + '. Si eres tú, ese es tu color. Si no, agrega una inicial a tu nombre.', true);
+        render(); return;
+      }
+      var idx = randomInt(N);
+      var jitter = (randomInt(1000) / 1000 - 0.5) * 2 * 16;
+      await ref.set({ name: name, color: COLORS[idx].key, at: Date.now(), uid: state.uid });
+      var target = Math.ceil(state.rotation / 360) * 360 + 360 * 5 + (360 - centerOf(idx) - jitter);
+      $('wheel').classList.add('spinning');
+      var done = false;
+      var finish = function () {
+        if (done) return; done = true;
+        spinSound(false);
+        stingerSound();
+        $('wheel').classList.remove('spinning');
+        state.spinning = false; state.revealed = true; state.synced = true;
+        render();
+      };
+      $('rotor').addEventListener('transitionend', finish, { once: true });
+      setTimeout(finish, 6800);
+      setRotation(target, true);
+      spinSound(true);
+    } catch (e) {
+      state.spinning = false;
+      spinSound(false);
+      $('wheel').classList.remove('spinning');
+      if (e && e.code === 'permission-denied') {
+        flash('No se pudo guardar. Ese nombre ya tiene giro o el registro está cerrado.', true);
+      } else {
+        flash('No se pudo guardar tu giro. Revisa tu conexión e intenta de nuevo.', true);
+      }
+      render();
+    }
+  }
+
+  /* ---------- Administración ---------- */
+  function armConfirm(key) {
+    state.confirm = key;
+    renderAdmin();
+    setTimeout(function () { if (state.confirm === key) { state.confirm = null; renderAdmin(); } }, 4000);
+  }
+  async function removeDocs(ids) {
+    state.busy = true; renderAdmin();
+    try {
+      for (var i = 0; i < ids.length; i++) {
+        await state.db.collection('spins').doc(ids[i]).delete();
+        var mm = mine();
+        if (mm && mm.id === ids[i]) { state.revealed = false; }
+      }
+    } catch (e) {
+      flash('No se pudo reiniciar. Intenta de nuevo.', true);
+    }
+    state.busy = false; state.confirm = null; render();
+  }
+  function listText() {
+    var lines = ['Ruleta de colores Halloween', ''];
+    COLORS.forEach(function (c) {
+      var names = validDocs().filter(function (d) { return d.color === c.key; }).map(function (d) { return clean(d.name); });
+      if (names.length) lines.push(c.name + ': ' + names.join(', '));
+    });
+    lines.push('', 'Cada quien lleva 4 botanas y 4 bebidas de su color.');
+    return lines.join('\n');
+  }
+  function copyList() {
+    var text = listText();
+    var fallback = function () { state.copyText = text; renderAdmin(); var t = document.querySelector('textarea.copybox'); if (t) { t.focus(); t.select(); } };
+    try {
+      navigator.clipboard.writeText(text).then(function () { state.copyText = ''; flash('Lista copiada.'); renderAdmin(); }, fallback);
+    } catch (e) { fallback(); }
+  }
+
+  /* ---------- Render ---------- */
+  function renderControls() {
+    var btn = $('spin'), input = $('name'), hub = $('hub');
+    var m = mine(), label, off = true;
+    if (state.phase === 'loading') label = 'Conectando…';
+    else if (state.phase === 'nocfg') { label = 'No disponible'; }
+    else if (state.phase === 'nodb') { label = 'No disponible'; }
+    else if (state.phase === 'noid') { label = 'No disponible'; }
+    else if (state.spinning) label = 'Girando…';
+    else if (m) label = 'Ya giraste';
+    else if (state.canWrite === false) label = 'Solo lectura';
+    else { label = '¡Girar!'; off = false; }
+    btn.textContent = label; btn.disabled = off; hub.disabled = off;
+    input.disabled = off && !(state.phase === 'loading');
+    if (m && !state.spinning) input.value = clean(m.name);
+    if (state.phase === 'nocfg') flash('Falta conectar la base de datos. Pega los datos de Firebase en index.html (ver GUIA.md).', true);
+    if (state.phase === 'nodb') flash('No se pudo conectar. Revisa tu internet y recarga la página.', true);
+    if (state.phase === 'noid') flash('No se pudo identificar tu navegador. Recarga la página.', true);
+  }
+  function renderResult() {
+    var box = $('result'); box.replaceChildren();
+    var m = mine();
+    if (m && state.revealed && byKey[m.color]) {
+      var c = byKey[m.color];
+      box.style.setProperty('--c', c.hex);
+      box.append(
+        h('p', { class: 'eyebrow' }, clean(m.name) + ', tu color es'),
+        h('div', { class: 'resrow' }, h('span', { class: 'swatch big' }), h('h2', { class: 'colorname' }, c.name)),
+        h('p', { class: 'task' }, 'Lleva ', h('strong', null, '4 botanas y 4 bebidas'), ' de color ' + c.name.toLowerCase() + '.'),
+        h('div', { class: 'ideas' },
+          h('div', null, h('h3', null, 'Ideas de botanas'), h('p', null, c.snacks.join(' · '))),
+          h('div', null, h('h3', null, 'Ideas de bebidas'), h('p', null, c.drinks.join(' · ')))
+        )
+      );
+    } else {
+      box.append(
+        h('p', { class: 'eyebrow' }, 'Tu color'),
+        h('p', { class: 'muted' }, state.spinning ? 'Girando…' : 'Gira la ruleta y aquí aparece tu color con lo que debes llevar.')
+      );
+    }
+  }
+  function renderBoard() {
+    var list = $('board'); list.replaceChildren();
+    var docs = validDocs().filter(function (d) { return !(state.spinning && d.uid === state.uid); });
+    $('board-count').textContent = docs.length + (docs.length === 1 ? ' persona' : ' personas');
+    COLORS.forEach(function (c) {
+      var people = docs.filter(function (d) { return d.color === c.key; }).sort(function (a, b) { return (a.at || 0) - (b.at || 0); });
+      list.append(h('li', { class: 'brow', style: '--c:' + c.hex },
+        h('span', { class: 'swatch' }),
+        h('span', { class: 'bname' }, c.name),
+        h('span', { class: 'pills' }, people.length ? people.map(function (d) { return h('span', { class: 'pill' }, clean(d.name)); }) : h('span', { class: 'muted small' }, 'Sin asignar'))
+      ));
+    });
+  }
+  function renderAdmin() {
+    var sec = $('admin');
+    sec.hidden = !state.isOwner;
+    if (!state.isOwner) return;
+    sec.replaceChildren();
+    var docs = validDocs().slice().sort(function (a, b) { return (a.at || 0) - (b.at || 0); });
+    var fmt = new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
+    sec.append(
+      h('h2', null, 'Panel de administradora'),
+      h('p', { class: 'muted small' }, 'Aquí ves a quién le tocó cada color. Solo tú puedes reiniciar giros.'),
+      h('div', { class: 'chips' }, COLORS.map(function (c) {
+        var n = docs.filter(function (d) { return d.color === c.key; }).length;
+        return h('span', { class: 'chip', style: '--c:' + c.hex }, h('span', { class: 'swatch' }), c.name + ' ' + n);
+      })),
+      h('div', { class: 'toolbar' },
+        h('button', { class: 'btn small ghost', type: 'button', onclick: copyList, disabled: !docs.length }, 'Copiar lista'),
+        h('button', { class: 'btn small danger' + (state.confirm === 'all' ? ' armed' : ''), type: 'button', disabled: !docs.length || state.busy,
+          onclick: function () { if (state.confirm === 'all') removeDocs(docs.map(function (d) { return d.id; })); else armConfirm('all'); } },
+          state.confirm === 'all' ? '¿Seguro? Borra todos' : 'Reiniciar todos')
+      )
+    );
+    if (!docs.length) {
+      sec.append(h('p', { class: 'muted' }, 'Todavía nadie gira. Cuando alguien lo haga, aparece aquí con su nombre y su color.'));
+    } else {
+      var rows = docs.map(function (d) {
+        var c = byKey[d.color];
+        return h('tr', null,
+          h('td', null, clean(d.name)),
+          h('td', null, h('span', { class: 'cell', style: '--c:' + c.hex }, h('span', { class: 'swatch' }), c.name)),
+          h('td', { class: 'when' }, d.at ? fmt.format(new Date(d.at)) : ''),
+          h('td', null, h('button', { class: 'btn small danger' + (state.confirm === d.id ? ' armed' : ''), type: 'button', disabled: state.busy,
+            onclick: function () { if (state.confirm === d.id) removeDocs([d.id]); else armConfirm(d.id); } },
+            state.confirm === d.id ? '¿Seguro?' : 'Reiniciar'))
+        );
+      });
+      sec.append(h('div', { class: 'tablewrap' }, h('table', null,
+        h('thead', null, h('tr', null, h('th', null, 'Nombre'), h('th', null, 'Color'), h('th', null, 'Hora'), h('th', null, ''))),
+        h('tbody', null, rows))));
+    }
+    if (state.copyText) {
+      sec.append(h('textarea', { class: 'copybox', readonly: true, 'aria-label': 'Lista para copiar' }, state.copyText));
+    }
+  }
+  function render() {
+    $('count').textContent = String(validDocs().length);
+    renderControls(); renderResult(); renderBoard(); renderAdmin();
+    var al = $('adminlogin');
+    if (al) al.hidden = !CFG.adminEmail || state.isOwner || state.phase !== 'ok';
+  }
+
+  /* ---------- Arranque ---------- */
+  function onDocs(snap) {
+    state.docs = snap.docs.map(function (d) { var o = d.data() || {}; return { id: d.id, uid: o.uid, name: o.name, color: o.color, at: o.at }; });
+    var m = mine();
+    if (m && !state.spinning) { state.revealed = true; syncWheel(); }
+    if (!m && !state.spinning) { state.revealed = false; }
+    render();
+  }
+  function adminLogin() {
+    if (state.phase !== 'ok' || !window.firebase) return;
+    var provider = new firebase.auth.GoogleAuthProvider();
+    firebase.auth().signInWithPopup(provider).then(function () {
+      if (!state.isOwner) { flash('Esa cuenta no es la de administradora.', true); firebase.auth().signOut(); }
+    }).catch(function () {
+      flash('No se pudo iniciar sesión como administradora.', true);
+    });
+  }
+  async function init() {
+    buildWheel();
+    $('spin').addEventListener('click', spin);
+    $('hub').addEventListener('click', spin);
+    $('name').addEventListener('keydown', function (e) { if (e.key === 'Enter') spin(); });
+    $('sound').addEventListener('click', function () {
+      audio.muted = !audio.muted;
+      try { localStorage.setItem('ruleta-mute', audio.muted ? '1' : '0'); } catch (e) {}
+      if (audio.muted) stopDrone(); else { audioInit(); tickSound(); }
+      renderSound();
+    });
+    $('adminlogin').addEventListener('click', adminLogin);
+    renderSound();
+    try { var saved = localStorage.getItem('ruleta-nombre'); if (saved) $('name').value = clean(saved); } catch (e) {}
+    render();
+    try {
+      if (!window.firebase || !CFG.apiKey || CFG.apiKey.indexOf('PEGA') === 0) { state.phase = 'nocfg'; render(); return; }
+      firebase.initializeApp(CFG);
+      var auth = firebase.auth();
+      state.db = firebase.firestore();
+      var started = false;
+      auth.onAuthStateChanged(function (u) {
+        if (!u) { auth.signInAnonymously().catch(function () { state.phase = 'noid'; render(); }); return; }
+        state.uid = u.uid;
+        state.isOwner = !u.isAnonymous && !!CFG.adminEmail && u.email === CFG.adminEmail && u.emailVerified === true;
+        state.canWrite = true;
+        var m = mine();
+        if (m && !state.spinning) { state.revealed = true; state.synced = false; syncWheel(); }
+        if (!started) {
+          started = true;
+          state.phase = 'ok';
+          state.db.collection('spins').onSnapshot(onDocs, function () {
+            flash('Se perdió la conexión con la ruleta. Recarga la página.', true);
+          });
+        }
+        render();
+      });
+    } catch (e) {
+      state.phase = 'nodb'; render();
+    }
+  }
+  init();
+})();
+</script>
+</body>
+</html>
